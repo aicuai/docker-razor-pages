@@ -1,42 +1,107 @@
 # classic-asp-to-razor
 
-**Classic ASP の書き味のまま、Docker / Linux で動く業務アプリを作る** ― ASP.NET Core Razor Pages のサンプルです。
+**English** | [日本語](README.ja.md)
 
-`todo.asp` や `employees.asp` を書いていた人が、同じ感覚で読めることを目指しています。
+**Build line-of-business apps that run on Docker / Linux, written the way you wrote Classic ASP** ― a sample in ASP.NET Core Razor Pages.
 
-- `docker compose up` だけで起動します (Windows も IIS も不要)
-- 題材は社内システムの定番、**ToDo** と **従業員マスタ** (検索・ページ送り・登録・修正・削除・CSV 出力)
-- 当時風の Classic ASP 版 (`legacy/asp`) と並べて読めます
-- Excel でそのまま開ける Shift_JIS の CSV、Session、アクセスカウンターなど「あの頃の定番」を現代の書き方で再現
+It is meant to be readable by people who used to write `todo.asp` and `employees.asp`.
 
-![従業員マスタの一覧画面](docs/images/employees.png)
+- Starts with `docker compose up` alone (no Windows, no IIS)
+- The subjects are the classics of in-house systems: a **ToDo** list and an **employee master** (search, paging, create, edit, delete, CSV export)
+- A period-style Classic ASP version (`legacy/asp`) sits next to it so you can read both side by side
+- Shift_JIS CSV that opens directly in Excel, Session, an access counter ― the staples of that era, rewritten the modern way
 
-## すぐ試す
+The screens, code comments and the guides under `docs/` are in Japanese, because the sample was written for Japanese readers.
 
-必要なのは Docker だけです。
+![Employee master list screen](docs/images/employees.png)
+
+## Quick start
+
+All you need is Docker.
 
 ```bash
-git clone <このリポジトリの URL>
-cd classic-asp-to-razor
+git clone https://github.com/aicuai/docker-razor-pages.git
+cd docker-razor-pages
 docker compose up --build
 ```
 
-ブラウザーで <http://localhost:8080> を開きます。終了は `Ctrl+C`、データごと消すなら `docker compose down -v` です。
+Open <http://localhost:8080> in a browser. Stop with `Ctrl+C`. To remove the data as well, run `docker compose down -v`.
 
-| 画面 | URL | ソース |
+| Screen | URL | Source |
 |---|---|---|
-| メニュー | <http://localhost:8080/> | `apps/web/Pages/Index.cshtml` |
+| Menu | <http://localhost:8080/> | `apps/web/Pages/Index.cshtml` |
 | ToDo | <http://localhost:8080/Todo> | `apps/web/Pages/Todo.cshtml` |
-| 従業員マスタ | <http://localhost:8080/Employees> | `apps/web/Pages/Employees/` |
+| Employee master | <http://localhost:8080/Employees> | `apps/web/Pages/Employees/` |
 
-| ToDo (1 ファイル完結スタイル) | 入力チェック (日本語メッセージ) |
+| ToDo (single-file style) | Input validation (messages in Japanese) |
 |---|---|
-| ![ToDo の画面](docs/images/todo.png) | ![従業員登録の入力エラー表示](docs/images/employee-edit-errors.png) |
+| ![ToDo screen](docs/images/todo.png) | ![Validation errors on the employee form](docs/images/employee-edit-errors.png) |
 
-## Razor Pages って何?
+## Start with `default.asp`
 
-「1 ページ = 1 ファイル」で作る、ASP.NET Core 標準の仕組みです。
-HTML の中に `@` で C# を埋め込みます。Classic ASP の `<% %>` を知っていれば、すぐ読めます。
+A Classic ASP site usually started at `default.asp`. So does this sample.
+The menu screen carries two staples of the time: **Session** (the operator's name) and **Application** (the access counter).
+
+![Menu screen](docs/images/menu.png)
+
+**Classic ASP ― [`legacy/asp/default.asp`](legacy/asp/default.asp)**
+
+```asp
+<%
+If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
+    operatorName = Trim(Request.Form("OperatorName"))
+    If operatorName = "" Then
+        errMsg = "担当者名を入力してください。"
+    Else
+        Session("OperatorName") = operatorName
+        Response.Redirect "default.asp"
+    End If
+End If
+
+Application.Lock
+Application("Counter") = Application("Counter") + 1
+hits = Application("Counter")
+Application.Unlock
+%>
+<p>あなたは <b><%= FormatNumber(hits, 0) %></b> 人目の訪問者です。</p>
+```
+
+**Razor Pages ― [`apps/web/Pages/Index.cshtml`](apps/web/Pages/Index.cshtml)**
+
+```cshtml
+@page
+@inject AccessCounter Counter
+@{
+    var hits = Counter.Increment();
+}
+<p>あなたは <strong>@hits.ToString("N0")</strong> 人目の訪問者です。</p>
+
+@functions {
+    [BindProperty]
+    public string? OperatorName { get; set; }
+
+    public IActionResult OnPost()
+    {
+        var name = OperatorName?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            ModelState.AddModelError(nameof(OperatorName), "担当者名を入力してください。");
+            return Page();
+        }
+
+        HttpContext.Session.SetString(SessionKeys.OperatorName, name);
+        return RedirectToPage();
+    }
+}
+```
+
+`default.asp` becomes `Index.cshtml`, `Request.Form` becomes `[BindProperty]`, and `Response.Redirect` becomes `RedirectToPage()`.
+The screen and its logic still sit together in one file. (Both listings are excerpts; follow the links for the full files.)
+
+## What is Razor Pages?
+
+It is the standard ASP.NET Core way of building a site as "one page = one file".
+You embed C# in HTML with `@`. If you know `<% %>` from Classic ASP, you can read it right away.
 
 **Classic ASP (VBScript)**
 
@@ -58,104 +123,107 @@ Loop
 }
 ```
 
-VBScript は Linux では動かないため (Windows でも非推奨になりました)、言語は C# に変わります。
-ただし「ファイルを置けば URL になる」「HTML にコードを埋め込む」という作り方はそのままです。
+VBScript does not run on Linux (and is deprecated on Windows too), so the language changes to C#.
+The way you build things stays the same: put a file in place and it becomes a URL, and you embed code in HTML.
 
-- くわしい解説: **[docs/razor-pages-primer.md](docs/razor-pages-primer.md)** (Razor Pages とは / なぜ VBScript ではないのか / 仕組み / つまずきやすい点)
-- 書き換えの早見表: **[docs/asp-to-razor-cheatsheet.md](docs/asp-to-razor-cheatsheet.md)** (`Request.Form`、`Session`、ADO、BASP21 などの置き換え先)
+- Full guide (Japanese): **[docs/razor-pages-primer.md](docs/razor-pages-primer.md)** (what Razor Pages is / why not VBScript / how it works / common pitfalls)
+- Rewrite cheat sheet (Japanese): **[docs/asp-to-razor-cheatsheet.md](docs/asp-to-razor-cheatsheet.md)** (where `Request.Form`, `Session`, ADO, BASP21 and others go)
 
-## 読む順番のおすすめ
+## Suggested reading order
 
-1. **`legacy/asp/todo.asp`** ― 当時の書き方を思い出す
-2. **`apps/web/Pages/Todo.cshtml`** ― 同じ画面の Razor Pages 版。画面と処理を 1 ファイルに書く、ASP にいちばん近いスタイル
-3. **`apps/web/Pages/Employees/`** ― 画面 (`.cshtml`) と処理 (`.cshtml.cs`) を分ける、標準のスタイル
-4. **`apps/web/Program.cs`** ― `global.asa` と IIS の設定にあたる部分
+1. **`legacy/asp/default.asp`** and **`apps/web/Pages/Index.cshtml`** ― see the difference on the smallest screen
+2. **`legacy/asp/todo.asp`** ― recall how it was written back then
+3. **`apps/web/Pages/Todo.cshtml`** ― the Razor Pages version of the same screen. Screen and logic in one file, the style closest to ASP
+4. **`apps/web/Pages/Employees/`** ― the standard style, with the screen (`.cshtml`) and the logic (`.cshtml.cs`) in separate files
+5. **`apps/web/Program.cs`** ― the counterpart of `global.asa` and the IIS settings
 
-ソースのコメントには `ASP: Request.Form("...")` のように、対応する ASP の書き方を添えてあります。
+Source comments note the matching ASP code, in the form `ASP: Request.Form("...")`.
 
-## フォルダー構成
+## Folder layout
 
 ```
 .
 ├── apps/
-│   └── web/                  Razor Pages 版のアプリ本体 (ASP.NET Core 10)
-│       ├── Pages/            画面。フォルダー構成がそのまま URL になる
-│       ├── Data/             テーブル定義 (schema.sql) と SQL をまとめたクラス
-│       ├── wwwroot/          CSS などの静的ファイル
-│       ├── Program.cs        起動処理
+│   └── web/                  The Razor Pages app (ASP.NET Core 10)
+│       ├── Pages/            Screens. The folder structure is the URL structure
+│       ├── Data/             Table definitions (schema.sql) and the classes that hold the SQL
+│       ├── wwwroot/          Static files such as CSS
+│       ├── Program.cs        Startup
 │       └── Dockerfile
 ├── legacy/
-│   └── asp/                  当時風の Classic ASP 版 (読み比べ用。実行はしない)
+│   └── asp/                  Period-style Classic ASP version (for reading only; it is not run)
 ├── tests/
-│   └── WebApp.Tests/         自動テスト (画面を実際に HTTP で操作する)
-├── docs/                     解説と早見表
-├── docker-compose.yml        アプリ + PostgreSQL
-├── AGENTS.md                 AI コーディングエージェント向けの作業ルール
-└── ClassicAspToRazor.slnx    ソリューション (Visual Studio / Rider / VS Code で開く)
+│   └── WebApp.Tests/         Automated tests (they drive the screens over real HTTP)
+├── docs/                     Guide and cheat sheet (Japanese)
+├── docker-compose.yml        App + PostgreSQL
+├── README.md                 This file
+├── README.ja.md              Japanese README
+├── AGENTS.md                 Working rules for AI coding agents
+└── ClassicAspToRazor.slnx    Solution (open in Visual Studio / Rider / VS Code)
 ```
 
-## 使っている技術
+## Tech stack
 
-| 役割 | 採用したもの | Classic ASP 時代でいうと |
+| Role | What is used | Classic ASP equivalent |
 |---|---|---|
-| 実行環境 | .NET 10 (LTS) / ASP.NET Core | IIS + ASP |
-| 画面 | Razor Pages | `.asp` |
-| 言語 | C# | VBScript |
-| DB | PostgreSQL 17 | SQL Server / Access |
-| DB アクセス | Npgsql + Dapper (SQL は手書き) | ADO (`ADODB.Connection` / `Recordset`) |
-| 配布 | Docker (Ubuntu ベースの公式イメージ) | サーバーに直接コピー |
+| Runtime | .NET 10 (LTS) / ASP.NET Core | IIS + ASP |
+| Screens | Razor Pages | `.asp` |
+| Language | C# | VBScript |
+| Database | PostgreSQL 17 | SQL Server / Access |
+| Data access | Npgsql + Dapper (hand-written SQL) | ADO (`ADODB.Connection` / `Recordset`) |
+| Distribution | Docker (official Ubuntu-based images) | Copying files onto the server |
 
-画面の見た目は自前の CSS 1 枚だけで、JavaScript フレームワークは使っていません。
+The look of the screens comes from a single hand-written CSS file. No JavaScript framework is used.
 
-## 開発する
+## Development
 
-.NET SDK を入れて手元で動かす場合の手順です。SDK 10.0 が必要です。
+These steps are for running the app locally with the .NET SDK. SDK 10.0 is required.
 
 ```bash
-# DB だけコンテナで起動する
+# Start only the database in a container
 docker compose up -d db
 
-# アプリを起動する (ソースを保存すると自動で再読み込みされる)
+# Start the app (it reloads when you save a source file)
 dotnet watch --project apps/web
 ```
 
-表示された URL (既定では <http://localhost:5121>) を開きます。
+Open the URL that is printed (<http://localhost:5121> by default).
 
-### テスト
+### Tests
 
 ```bash
 docker compose up -d db
 dotnet test
 ```
 
-テストは PostgreSQL に実際に接続します (テスト専用のデータベース `aspdemo_test` を自動で作ります)。
-接続先を変える場合は、環境変数 `TEST_CONNECTION_STRING` を指定します。
+The tests connect to a real PostgreSQL (they create a test-only database, `aspdemo_test`, on their own).
+To point them elsewhere, set the `TEST_CONNECTION_STRING` environment variable.
 
-### 設定
+### Settings
 
-| 設定名 (環境変数での書き方) | 内容 | 既定値 |
+| Setting (as an environment variable) | Meaning | Default |
 |---|---|---|
-| `ConnectionStrings__Default` | PostgreSQL の接続文字列 | `Host=localhost;Port=5432;Database=aspdemo;Username=app;Password=app` |
-| `DataProtection__KeysPath` | Cookie の暗号鍵を保存するフォルダー | 空 (.NET の既定の場所) |
-| `ASPNETCORE_HTTP_PORTS` | 待ち受けるポート (コンテナ内) | `8080` |
-| `TZ` | タイムゾーン | `Asia/Tokyo` (compose で指定) |
+| `ConnectionStrings__Default` | PostgreSQL connection string | `Host=localhost;Port=5432;Database=aspdemo;Username=app;Password=app` |
+| `DataProtection__KeysPath` | Folder where the cookie encryption keys are stored | empty (the .NET default location) |
+| `ASPNETCORE_HTTP_PORTS` | Listening port (inside the container) | `8080` |
+| `TZ` | Time zone | `Asia/Tokyo` (set in compose) |
 
-テーブルと初期データは、アプリの起動時に `apps/web/Data/schema.sql` から自動で作られます。
+Tables and seed data are created from `apps/web/Data/schema.sql` when the app starts.
 
-## 本番で使う前に
+## Before using this in production
 
-これは学習用のサンプルです。実際の業務で使う場合は、少なくとも次の対応が必要です。
+This is a sample for learning. For real work you need at least the following.
 
-- **ログイン機能がありません。** 「担当者名」は自己申告で、誰でも全データを操作できます。
-  社内で使う場合も、認証 (ASP.NET Core Identity、Microsoft Entra ID など) を追加してください。
-- **DB のパスワードがサンプル用の固定値です。** `docker-compose.yml` の `app` / `app` を必ず変更してください。
-- **HTTPS の設定がありません。** リバースプロキシ (nginx、Caddy、クラウドのロードバランサーなど) で HTTPS にしてください。
-- **Session とアクセスカウンターはメモリ上にあります。** アプリを再起動すると消えます。複数台構成にはできません。
-- **テーブル定義の変更履歴を管理する仕組みがありません。** 列の追加などが必要になったら、マイグレーションツールの導入を検討してください。
+- **There is no login.** The "operator name" is self-declared, and anyone can change all the data.
+  Even for internal use, add authentication (ASP.NET Core Identity, Microsoft Entra ID, and so on).
+- **The database password is a fixed sample value.** Change the `app` / `app` in `docker-compose.yml`.
+- **HTTPS is not configured.** Put a reverse proxy (nginx, Caddy, a cloud load balancer) in front to serve HTTPS.
+- **Session and the access counter live in memory.** They are lost when the app restarts, and the app cannot be run on more than one instance.
+- **Schema changes are not tracked.** Once you need to add columns, consider a migration tool.
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)
 
-BASP21 および Classic ASP のコード・バイナリは一切含んでいません。
-`legacy/asp` は、このサンプルのために新しく書き起こした参考コードです。
+This repository contains no BASP21 or Classic ASP code or binaries from third parties.
+`legacy/asp` is reference code newly written for this sample.
