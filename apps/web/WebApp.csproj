@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>WebApp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 起動時に流すテーブル定義。DLL に埋め込んで配布する -->
+    <EmbeddedResource Include="Data/schema.sql" LogicalName="schema.sql" />
+  </ItemGroup>
+
+</Project>

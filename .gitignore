@@ -1,0 +1,15 @@
+# ビルドの生成物
+bin/
+obj/
+TestResults/
+
+# エディターや OS が作るファイル
+.vs/
+.idea/
+*.user
+.DS_Store
+
+# 手元だけの設定 (パスワードなどを入れてしまいやすいのでコミットしない)
+.env
+.env.*
+appsettings.*.local.json

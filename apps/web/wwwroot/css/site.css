@@ -1,0 +1,148 @@
+/* 社内業務システム風の、飾りすぎないスタイル。CSS フレームワークは使っていない。 */
+:root {
+    color-scheme: light dark;
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --text: #1d2330;
+    --muted: #5d6676;
+    --line: #cfd5df;
+    --head: #1f3a5f;
+    --head-text: #ffffff;
+    --accent: #1f5fae;
+    --stripe: #f7f9fc;
+    --danger: #b3261e;
+    --ok-bg: #e4f3e7;
+    --ok-text: #1c5b2b;
+    --err-bg: #fdecea;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #14171c;
+        --panel: #1c2028;
+        --text: #e4e8ee;
+        --muted: #9aa4b3;
+        --line: #343b47;
+        --head: #101c2e;
+        --head-text: #e4e8ee;
+        --accent: #7fb2f0;
+        --stripe: #20252e;
+        --danger: #f2877f;
+        --ok-bg: #1b3323;
+        --ok-text: #a8dbb4;
+        --err-bg: #3a1f1d;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", "Noto Sans CJK JP", Meiryo, sans-serif;
+}
+
+a { color: var(--accent); }
+
+.site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 20px;
+    padding: 10px 20px;
+    background: var(--head);
+    color: var(--head-text);
+}
+.site-header a { color: inherit; text-decoration: none; }
+.site-header nav { display: flex; gap: 16px; flex: 1; }
+.site-header nav a { white-space: nowrap; }
+.site-header nav a:hover { text-decoration: underline; }
+.brand { font-weight: 700; font-size: 17px; }
+.operator { font-size: 13px; opacity: .85; }
+
+main {
+    max-width: 1080px;
+    margin: 20px auto;
+    padding: 4px 24px 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+}
+
+h1 { font-size: 22px; margin: 16px 0; padding-bottom: 6px; border-bottom: 2px solid var(--head); }
+h2 { font-size: 17px; margin: 28px 0 4px; }
+
+.site-footer { max-width: 1080px; margin: 0 auto 24px; padding: 0 24px; color: var(--muted); font-size: 12px; }
+
+/* 入力部品 */
+input, select, textarea, button, .button {
+    font: inherit;
+    color: inherit;
+    padding: 5px 9px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    max-width: 100%;
+}
+input[type="checkbox"] { width: 16px; height: 16px; padding: 0; vertical-align: -2px; }
+button, .button {
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+    background: var(--stripe);
+    white-space: nowrap;
+}
+button:hover, .button:hover { border-color: var(--accent); }
+button.danger { color: var(--danger); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.inline-form, .search-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0; }
+.search-form { padding: 12px; background: var(--stripe); border: 1px solid var(--line); border-radius: 4px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.toolbar .count { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+/* 一覧表 */
+.grid { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.grid th, .grid td { padding: 6px 10px; border: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.grid th { background: var(--head); color: var(--head-text); font-weight: 600; white-space: nowrap; }
+.grid tbody tr:nth-child(even) { background: var(--stripe); }
+.grid tr.done td { color: var(--muted); }
+.grid .overdue { color: var(--danger); font-weight: 600; }
+.actions { white-space: nowrap; }
+.actions form { display: inline; }
+
+/* 登録・修正フォーム */
+.edit-form .row { display: grid; grid-template-columns: 140px auto 1fr; align-items: center; gap: 6px 12px; padding: 7px 0; }
+.edit-form .row > label { font-weight: 600; }
+.edit-form .row > input:not([type="checkbox"]), .edit-form .row > select, .edit-form .row > textarea { justify-self: start; }
+.edit-form .buttons { grid-template-columns: 140px auto auto 1fr; }
+.edit-form .buttons > :first-child { grid-column: 2; }
+
+/* メッセージ類 */
+.flash { margin: 16px 0 0; padding: 8px 12px; background: var(--ok-bg); color: var(--ok-text); border-radius: 4px; }
+.field-error, .field-validation-error { color: var(--danger); font-size: 13px; }
+.input-validation-error { border-color: var(--danger); }
+.error-summary ul { margin: 8px 0; padding: 8px 12px 8px 30px; background: var(--err-bg); color: var(--danger); border-radius: 4px; }
+.validation-summary-valid { display: none; }
+.empty, .meta, .counter { color: var(--muted); }
+.meta { font-size: 13px; }
+
+.menu { list-style: none; padding: 0; display: grid; gap: 10px; }
+.menu li { padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--head); border-radius: 4px; }
+.menu a { font-size: 17px; font-weight: 700; margin-right: 12px; }
+.menu span { color: var(--muted); font-size: 13px; }
+
+.tabs a { margin-left: 8px; }
+.tabs a.current { font-weight: 700; color: inherit; text-decoration: none; }
+
+.pager { display: flex; gap: 6px; align-items: center; }
+.pager a, .pager strong { padding: 3px 10px; border: 1px solid var(--line); border-radius: 4px; text-decoration: none; }
+.pager strong { background: var(--head); color: var(--head-text); border-color: var(--head); }
+
+@media (max-width: 720px) {
+    main { margin: 0; border: 0; border-radius: 0; padding: 4px 16px 20px; }
+    .grid { display: block; overflow-x: auto; }
+    .edit-form .row, .edit-form .buttons { grid-template-columns: 1fr; }
+    .edit-form .buttons > :first-child { grid-column: 1; }
+}

@@ -1,0 +1,104 @@
+@page
+@model WebApp.Pages.Employees.IndexModel
+@*
+    従業員マスタ一覧。URL は「/Employees」。
+    PageModel 分離スタイル: このファイルは画面だけ。処理は Index.cshtml.cs にある。
+    画面からは @Model.xxx で PageModel のプロパティを参照する。
+*@
+@{
+    ViewData["Title"] = "従業員マスタ";
+}
+
+<h1>従業員マスタ</h1>
+
+@* 検索フォーム。method="get" なので条件が URL に残り、ブックマークや「戻る」がそのまま使える *@
+<form method="get" class="search-form">
+    <label for="q">キーワード</label>
+    <input id="q" name="q" value="@Model.Keyword" placeholder="氏名・フリガナ・社員番号・メール" size="30" />
+
+    <label for="dept">部署</label>
+    <select id="dept" name="dept">
+        <option value="">(すべて)</option>
+        @foreach (var d in Model.Departments)
+        {
+            <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+        }
+    </select>
+
+    <label class="check">
+        <input type="checkbox" name="retired" value="true" checked="@Model.IncludeRetired" /> 退職者を含む
+    </label>
+
+    <button type="submit">検索</button>
+    <a asp-page="Index">条件クリア</a>
+</form>
+
+<p class="toolbar">
+    <a class="button" asp-page="Edit">新規登録</a>
+    <a class="button" asp-page="Index" asp-page-handler="Csv" asp-all-route-data="Model.RouteValues()">CSV 出力 (Shift_JIS)</a>
+    <span class="count">@Model.Total 件中 @Model.RangeFrom 〜 @Model.RangeTo 件を表示</span>
+</p>
+
+@if (Model.Employees.Count == 0)
+{
+    <p class="empty">条件に合う従業員はいません。</p>
+}
+else
+{
+    <table class="grid">
+        <thead>
+            <tr>
+                <th>社員番号</th><th>氏名</th><th>フリガナ</th><th>部署</th><th>メール</th><th>入社日</th><th>在籍</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var e in Model.Employees)
+        {
+            <tr class="@(e.IsRetired ? "done" : null)">
+                <td>@e.EmployeeNo</td>
+                <td>@e.Name</td>
+                <td>@e.NameKana</td>
+                <td>@e.DepartmentName</td>
+                <td>@e.Email</td>
+                <td>@e.HiredOn?.ToString("yyyy/MM/dd")</td>
+                <td>@(e.IsRetired ? "退職" : "在籍")</td>
+                <td class="actions">
+                    <a class="button" asp-page="Edit" asp-route-id="@e.Id">修正</a>
+                    @* 削除は POST。検索条件とページ番号は URL に、対象の id は hidden に入れて送る *@
+                    <form method="post" asp-page-handler="Delete" asp-all-route-data="Model.RouteValues(Model.PageNo)"
+                          data-confirm="@e.EmployeeNo @e.Name を削除します。よろしいですか?"
+                          onsubmit="return confirm(this.dataset.confirm);">
+                        <input type="hidden" name="id" value="@e.Id" />
+                        <button type="submit" class="danger">削除</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="pager" aria-label="ページ送り">
+            @if (Model.PageNo > 1)
+            {
+                <a asp-page="Index" asp-all-route-data="Model.RouteValues(Model.PageNo - 1)">« 前へ</a>
+            }
+            @for (var p = 1; p <= Model.TotalPages; p++)
+            {
+                if (p == Model.PageNo)
+                {
+                    <strong aria-current="page">@p</strong>
+                }
+                else
+                {
+                    <a asp-page="Index" asp-all-route-data="Model.RouteValues(p)">@p</a>
+                }
+            }
+            @if (Model.PageNo < Model.TotalPages)
+            {
+                <a asp-page="Index" asp-all-route-data="Model.RouteValues(Model.PageNo + 1)">次へ »</a>
+            }
+        </nav>
+    }
+}

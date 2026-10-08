@@ -1,0 +1,71 @@
+@page "{id:int?}"
+@model WebApp.Pages.Employees.EditModel
+@*
+    従業員の新規登録 / 修正。URL は「/Employees/Edit」(新規) と「/Employees/Edit/123」(修正)。
+    1 行目の "{id:int?}" が「URL の末尾に数字があれば id として受け取る」という指定。
+
+    このページはタグヘルパー (asp-for など) をフルに使った書き方。
+    asp-for="Input.Name" と書くだけで、name 属性・id 属性・現在値・入力チェック用の属性が出力される。
+*@
+@{
+    ViewData["Title"] = Model.IsNew ? "従業員の新規登録" : "従業員の修正";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<form method="post" class="edit-form">
+    @* 項目に紐づかないエラー (社員番号の重複など) をまとめて表示 *@
+    <div asp-validation-summary="ModelOnly" class="error-summary"></div>
+
+    <div class="row">
+        <label asp-for="Input.EmployeeNo"></label>
+        <input asp-for="Input.EmployeeNo" size="12" />
+        <span asp-validation-for="Input.EmployeeNo" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.Name"></label>
+        <input asp-for="Input.Name" size="30" />
+        <span asp-validation-for="Input.Name" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.NameKana"></label>
+        <input asp-for="Input.NameKana" size="30" />
+        <span asp-validation-for="Input.NameKana" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.DepartmentId"></label>
+        <select asp-for="Input.DepartmentId" asp-items="Model.DepartmentOptions">
+            <option value="">(選択してください)</option>
+        </select>
+        <span asp-validation-for="Input.DepartmentId" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.Email"></label>
+        <input asp-for="Input.Email" size="40" />
+        <span asp-validation-for="Input.Email" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.HiredOn"></label>
+        <input asp-for="Input.HiredOn" />
+        <span asp-validation-for="Input.HiredOn" class="field-error"></span>
+    </div>
+    <div class="row">
+        <label asp-for="Input.IsRetired"></label>
+        <input asp-for="Input.IsRetired" />
+    </div>
+    <div class="row">
+        <label asp-for="Input.Note"></label>
+        <textarea asp-for="Input.Note" rows="3" cols="50"></textarea>
+        <span asp-validation-for="Input.Note" class="field-error"></span>
+    </div>
+
+    <div class="row buttons">
+        <button type="submit">@(Model.IsNew ? "登録" : "更新")</button>
+        <a asp-page="Index">一覧に戻る</a>
+    </div>
+
+    @if (!Model.IsNew && Model.UpdatedAt is { } updatedAt)
+    {
+        <p class="meta">最終更新: @updatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm") (@(Model.UpdatedBy ?? "不明"))</p>
+    }
+</form>

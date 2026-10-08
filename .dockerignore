@@ -1,0 +1,10 @@
+# イメージのビルドに不要なものを送らない (手元の bin/obj が混ざるとビルドが壊れる)
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.vs/
+.idea/
+docs/
+legacy/
+tests/

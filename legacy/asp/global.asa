@@ -1,0 +1,12 @@
+<SCRIPT LANGUAGE="VBScript" RUNAT="Server">
+' アプリケーション全体のイベント。 Razor 版では Program.cs にあたる。
+
+Sub Application_OnStart
+    Application("Counter") = 0
+End Sub
+
+Sub Session_OnStart
+    Session.Timeout = 20          ' 分。Razor 版: options.IdleTimeout
+    Session("OperatorName") = ""
+End Sub
+</SCRIPT>

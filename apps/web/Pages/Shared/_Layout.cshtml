@@ -1,0 +1,41 @@
+@*
+    全ページ共通の枠。
+    Classic ASP の <!--#include file="inc/header.asp"--> と footer.asp を 1 ファイルにまとめたもの。
+    各ページの中身は @RenderBody() の位置に差し込まれる。
+*@
+@using System.Runtime.InteropServices
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] | 社内業務システム</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" asp-page="/Index">社内業務システム</a>
+        <nav aria-label="メインメニュー">
+            <a asp-page="/Index">メニュー</a>
+            <a asp-page="/Todo">ToDo</a>
+            <a asp-page="/Employees/Index">従業員マスタ</a>
+        </nav>
+        @* ASP: <%= Session("OperatorName") %> *@
+        <span class="operator">担当: @(Context.Session.GetString(SessionKeys.OperatorName) ?? "未設定")</span>
+    </header>
+
+    <main>
+        @* 直前の処理結果を 1 回だけ表示する (登録しました、など) *@
+        @if (TempData["Message"] is string message)
+        {
+            <p class="flash" role="status">@message</p>
+        }
+
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        @RuntimeInformation.FrameworkDescription / @RuntimeInformation.OSDescription (@RuntimeInformation.OSArchitecture)
+    </footer>
+</body>
+</html>

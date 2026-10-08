@@ -1,0 +1,68 @@
+@page
+@*
+    メニュー画面。URL は「/」。
+    1 ファイル完結スタイル: 画面 (HTML) と処理 (@functions) を同じファイルに書いている。
+*@
+@inject AccessCounter Counter
+@{
+    ViewData["Title"] = "メニュー";
+
+    // ASP:  Application.Lock : Application("Counter") = Application("Counter") + 1 : Application.Unlock
+    var hits = Counter.Increment();
+}
+
+<h1>メニュー</h1>
+
+<ul class="menu">
+    <li>
+        <a asp-page="/Todo">ToDo</a>
+        <span>やることリスト。1 ファイル完結スタイルで書いた、いちばん ASP に近いページ</span>
+    </li>
+    <li>
+        <a asp-page="/Employees/Index">従業員マスタ</a>
+        <span>検索・ページ送り・登録・修正・削除・CSV 出力。PageModel 分離スタイル</span>
+    </li>
+</ul>
+
+<h2>担当者名</h2>
+<p>ここで入力した名前はセッションに保存され、従業員マスタの「更新者」に記録されます。</p>
+
+<form method="post" class="inline-form">
+    <label for="OperatorName">担当者名</label>
+    <input id="OperatorName" name="OperatorName" value="@OperatorName" maxlength="50" />
+    <button type="submit">設定</button>
+    <span class="field-error">@Html.ValidationMessage("OperatorName")</span>
+</form>
+
+<p class="counter">あなたは <strong>@hits.ToString("N0")</strong> 人目の訪問者です(アプリ起動からの通算)。</p>
+
+@functions {
+    // フォームの name="OperatorName" の値が自動で入る。 ASP: Request.Form("OperatorName")
+    [BindProperty]
+    public string? OperatorName { get; set; }
+
+    // GET のとき (画面を開いたとき) に呼ばれる
+    public void OnGet()
+    {
+        // ASP: Session("OperatorName")
+        OperatorName = HttpContext.Session.GetString(SessionKeys.OperatorName);
+    }
+
+    // POST のとき (「設定」ボタンを押したとき) に呼ばれる
+    public IActionResult OnPost()
+    {
+        var name = OperatorName?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            ModelState.AddModelError(nameof(OperatorName), "担当者名を入力してください。");
+            return Page(); // 同じ画面をエラー付きで出し直す
+        }
+
+        // ASP: Session("OperatorName") = name
+        HttpContext.Session.SetString(SessionKeys.OperatorName, name);
+        TempData["Message"] = $"担当者を「{name}」に設定しました。";
+
+        // ASP: Response.Redirect "default.asp"
+        return RedirectToPage();
+    }
+}

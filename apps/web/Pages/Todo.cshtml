@@ -1,0 +1,152 @@
+@page
+@*
+    ToDo 画面。URL は「/Todo」。
+    Classic ASP の todo.asp (legacy/asp/todo.asp) を、ほぼ同じ構成のまま書き直したもの。
+    ・上半分 = 画面 (HTML の中に @ で C# を埋め込む。ASP の <% %> にあたる)
+    ・下半分 = 処理 (@functions の中。ASP でファイル先頭に書いていた <% ... %> にあたる)
+*@
+@using Dapper
+@using Npgsql
+@inject NpgsqlDataSource Db
+@{
+    ViewData["Title"] = "ToDo";
+}
+
+<h1>ToDo</h1>
+
+<form method="post" asp-page-handler="Add" class="inline-form">
+    <label for="NewTitle">件名</label>
+    <input id="NewTitle" name="NewTitle" value="@NewTitle" maxlength="200" size="40" autofocus />
+    <label for="NewDueDate">期限</label>
+    <input id="NewDueDate" name="NewDueDate" type="date" value="@NewDueDate?.ToString("yyyy-MM-dd")" />
+    <button type="submit">追加</button>
+    <span class="field-error">@Html.ValidationMessage("NewTitle")</span>
+</form>
+
+<p class="tabs">
+    表示:
+    <a asp-page="/Todo" asp-route-show="all" class="@(Filter == "all" ? "current" : null)">すべて</a>
+    <a asp-page="/Todo" asp-route-show="open" class="@(Filter == "open" ? "current" : null)">未完了</a>
+    <a asp-page="/Todo" asp-route-show="done" class="@(Filter == "done" ? "current" : null)">完了</a>
+</p>
+
+@if (Todos.Count == 0)
+{
+    <p class="empty">表示する ToDo はありません。</p>
+}
+else
+{
+    <table class="grid">
+        <thead>
+            <tr><th>状態</th><th>件名</th><th>期限</th><th>登録日時</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+        @* ASP:  Do Until rs.EOF ... rs.MoveNext : Loop *@
+        @foreach (var todo in Todos)
+        {
+            var overdue = !todo.IsDone && todo.DueDate < DateOnly.FromDateTime(DateTime.Today);
+            <tr class="@(todo.IsDone ? "done" : null)">
+                <td>@(todo.IsDone ? "完了" : "未完了")</td>
+                @* @todo.Title は自動で HTML エスケープされる。 ASP: <%= Server.HTMLEncode(rs("title")) %> *@
+                <td>@todo.Title</td>
+                <td class="@(overdue ? "overdue" : null)">@todo.DueDate?.ToString("yyyy/MM/dd")</td>
+                <td>@todo.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                <td class="actions">
+                    <form method="post" asp-page-handler="Toggle" asp-route-id="@todo.Id" asp-route-show="@Filter">
+                        <button type="submit">@(todo.IsDone ? "未完了に戻す" : "完了にする")</button>
+                    </form>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@todo.Id" asp-route-show="@Filter"
+                          onsubmit="return confirm('この ToDo を削除します。よろしいですか?');">
+                        <button type="submit" class="danger">削除</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@functions {
+    // ---- 画面に渡すデータ ----
+    public List<Todo> Todos { get; private set; } = [];
+
+    // ---- フォームや URL から受け取る値 (名前が一致するものが自動で入る) ----
+    [BindProperty]
+    public string? NewTitle { get; set; }               // ASP: Request.Form("NewTitle")
+
+    [BindProperty]
+    public DateOnly? NewDueDate { get; set; }           // ASP: CDate(Request.Form("NewDueDate"))
+
+    [BindProperty(SupportsGet = true)]
+    public string? Show { get; set; }                   // ASP: Request.QueryString("show")
+
+    // 表示の絞り込み。想定外の値が来たら「すべて」として扱う
+    public string Filter => Show is "open" or "done" ? Show : "all";
+
+    // ---- GET /Todo ----
+    public async Task OnGetAsync()
+    {
+        await LoadAsync();
+    }
+
+    // ---- POST /Todo?handler=Add (「追加」ボタン) ----
+    public async Task<IActionResult> OnPostAddAsync()
+    {
+        var title = NewTitle?.Trim();
+        if (string.IsNullOrEmpty(title))
+        {
+            ModelState.AddModelError(nameof(NewTitle), "件名を入力してください。");
+        }
+        else if (title.Length > 200)
+        {
+            ModelState.AddModelError(nameof(NewTitle), "件名は 200 文字以内で入力してください。");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadAsync();
+            return Page(); // 入力内容を残したまま、同じ画面をエラー付きで出し直す
+        }
+
+        // ASP:  conn.Execute "INSERT INTO todos (title) VALUES ('" & Replace(title, "'", "''") & "')"
+        // 値は @Title のようなパラメータで渡す。文字列連結しないので SQL インジェクションが起きない。
+        await using var conn = await Db.OpenConnectionAsync();
+        await conn.ExecuteAsync(
+            "INSERT INTO todos (title, due_date) VALUES (@Title, @DueDate)",
+            new { Title = title, DueDate = NewDueDate });
+
+        TempData["Message"] = $"「{title}」を追加しました。";
+        return RedirectToPage(new { show = Filter }); // ASP: Response.Redirect "todo.asp"
+    }
+
+    // ---- POST /Todo?handler=Toggle&id=123 (完了/未完了の切り替え) ----
+    public async Task<IActionResult> OnPostToggleAsync(int id)
+    {
+        await using var conn = await Db.OpenConnectionAsync();
+        await conn.ExecuteAsync("UPDATE todos SET is_done = NOT is_done WHERE id = @id", new { id });
+        return RedirectToPage(new { show = Filter });
+    }
+
+    // ---- POST /Todo?handler=Delete&id=123 ----
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        await using var conn = await Db.OpenConnectionAsync();
+        await conn.ExecuteAsync("DELETE FROM todos WHERE id = @id", new { id });
+        TempData["Message"] = "削除しました。";
+        return RedirectToPage(new { show = Filter });
+    }
+
+    // ---- 一覧の読み込み (GET でもエラー時の再表示でも使う) ----
+    private async Task LoadAsync()
+    {
+        // ASP:  Set rs = conn.Execute("SELECT ... FROM todos ORDER BY ...")
+        await using var conn = await Db.OpenConnectionAsync();
+        var rows = await conn.QueryAsync<Todo>("""
+            SELECT id, title, due_date, is_done, created_at
+              FROM todos
+             WHERE @Filter = 'all' OR (@Filter = 'open' AND NOT is_done) OR (@Filter = 'done' AND is_done)
+             ORDER BY is_done, due_date NULLS LAST, id
+            """, new { Filter });
+        Todos = rows.AsList();
+    }
+}

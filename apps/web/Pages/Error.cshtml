@@ -1,0 +1,15 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "エラー";
+}
+
+<h1>エラーが発生しました</h1>
+<p>処理中に問題が発生しました。時間をおいてもう一度お試しください。</p>
+
+@if (Model.ShowRequestId)
+{
+    <p class="meta">お問い合わせ番号: <code>@Model.RequestId</code></p>
+}
+
+<p><a asp-page="/Index">メニューに戻る</a></p>

@@ -1,0 +1,44 @@
+# 開発・お試し用の構成。  docker compose up --build  →  http://localhost:8080
+# パスワードはサンプル用の固定値。インターネットに公開する環境では必ず変更すること。
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # appsettings.json の ConnectionStrings:Default を上書きする (「:」は環境変数では「__」と書く)
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=aspdemo;Username=app;Password=app"
+      DataProtection__KeysPath: /keys
+      TZ: Asia/Tokyo
+    volumes:
+      - keys:/keys
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: aspdemo
+      TZ: Asia/Tokyo
+    ports:
+      # ホスト側から dotnet run / dotnet test で使えるよう、自分の PC にだけ公開する
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d aspdemo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  keys:
