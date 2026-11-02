@@ -1,0 +1,46 @@
+# プッシュとプルリクエストのたびに、ビルド・テスト・Docker イメージのビルドを確認する。
+# テストは本物の PostgreSQL に接続するので、サービスコンテナで起動しておく。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: aspdemo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d aspdemo"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: ビルド (警告はエラー扱い)
+        run: dotnet build
+
+      - name: テスト
+        run: dotnet test --no-build
+        env:
+          TEST_CONNECTION_STRING: Host=localhost;Port=5432;Database=aspdemo_test;Username=app;Password=app
+
+      - name: Docker イメージのビルド
+        run: docker build -f apps/web/Dockerfile .
