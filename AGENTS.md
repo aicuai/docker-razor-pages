@@ -53,6 +53,8 @@ docker compose up --build        # Run everything in containers (http://localhos
 
 ## Definition of done
 
+CI (`.github/workflows/ci.yml`) runs the same build and tests, plus a Docker image build, on every push to `main` and on every pull request. A green CI does not replace the screen check below.
+
 Before reporting a change as "done", confirm all of the following.
 
 - [ ] `dotnet build` passes with 0 warnings and 0 errors
@@ -117,7 +119,7 @@ In this repository, the worst defect is code and explanation disagreeing. When y
 | Settings in `Program.cs` | Section 9 (pitfalls) of `docs/razor-pages-primer.md`; "Settings" in both READMEs |
 | A rewrite that changes the correspondence with ASP | The "example" column of `docs/asp-to-razor-cheatsheet.md`; the mapping table in `legacy/asp/README.md` |
 | `Pages/Index.cshtml` or `legacy/asp/default.asp` | The excerpts under "Start with `default.asp`" in both READMEs |
-| Package or runtime versions | "Tech stack" in both READMEs, `Dockerfile`, `global.json`, and `.github/workflows/ci.yml` (not added yet) |
+| Package or runtime versions | "Tech stack" in both READMEs, `Dockerfile`, `global.json`, and `.github/workflows/ci.yml` |
 | The look of a screen | The screenshots in `docs/images/` |
 | Either README | The other README |
 
